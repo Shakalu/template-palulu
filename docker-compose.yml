@@ -1,0 +1,12 @@
+version: '3'
+services:
+  kali:
+    build: .
+    container_name: kali
+    ports:
+      - "7080:7080"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    volumes:
+      - /workspace/template-kokua/core/shared:/root/shared
