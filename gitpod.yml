@@ -1,9 +1,9 @@
 image:
   file: gitpod.Dockerfile
 ports:
-  - name: Node Red
-    description: Node Red Flow Programming
-    port: 1880
+  - name: Kali
+    description: Kali noVNC Frontend
+    port: 7080
 tasks:
   - name: tailscaled
     command: |

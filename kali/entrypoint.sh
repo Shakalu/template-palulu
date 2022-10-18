@@ -1,7 +1,10 @@
 #!/bin/bash
-export GEOMETRY=${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH}
-x11vnc -storepasswd ${PASSWORD} ~/.vnc/passwd
 
-#/root/noVNC/utils/novnc_proxy --vnc localhost:5901
+# Set password for VNC
 
-exec /usr/bin/supervisord -n
+#mkdir -p /root/.vnc/
+#echo $VNCPWD | vncpasswd -f > /root/.vnc/passwd
+#chmod 600 /root/.vnc/passwd
+
+
+#/bin/bash

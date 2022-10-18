@@ -4,9 +4,10 @@ services:
     build: .
     container_name: kali
     ports:
+      - "5901:5901"
       - "7080:7080"
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
     volumes:
-      - /workspace/template-kokua/core/shared:/root/shared
+      - /workspace/template-palulu/shared:/root/shared
