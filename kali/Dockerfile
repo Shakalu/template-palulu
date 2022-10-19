@@ -72,7 +72,7 @@ RUN apt -y install --no-install-recommends sudo wget curl dbus-x11 xinit ${DESKT
 # #####################################################
 
 RUN echo "#!/bin/bash" > /startkali.sh
-RUN echo "/etc/init.d/ssh start" >> /startkali.sh
+#RUN echo "/etc/init.d/ssh start" >> /startkali.sh
 RUN chmod 755 /startkali.sh
 
 # #####################################################
@@ -81,78 +81,20 @@ RUN chmod 755 /startkali.sh
 
 RUN apt -y install --no-install-recommends ${KALI_PKG}
 
-# #####################################################
-# create the non-root kali user
-# #####################################################
-
-RUN useradd -m -s /bin/bash -G sudo kaliuser
-RUN echo 'kaliuser:onemarcfifty' | chpasswd
-
-# #####################################################
-# change the ssh port in /etc/ssh/sshd_config
-# When you use the bridge network, then you would
-# not have to do that. You could rather add a port
-# mapping argument such as -p 2022:22 to the 
-# docker create command. But we might as well
-# use the host network and port 22 might be taken
-# on the docker host. Hence we change it 
-# here inside the container
-# #####################################################
-
-RUN echo "Port $SSH_PORT" >>/etc/ssh/sshd_config
-
-# #############################
-# install and configure x2go
-# x2go uses ssh
-# #############################
-
-RUN if [ "xx2go" = "x${REMOTE_ACCESS}" ]  ; \
-    then \
-        apt -y install --no-install-recommends x2goserver ; \
-        echo "/etc/init.d/x2goserver start" >> /startkali.sh ; \
-    fi
-
-# #############################
-# install and configure xrdp
-# #############################
-
-RUN if [ "xrdp" = "x${REMOTE_ACCESS}" ] ; \
-    then \
-        apt -y install --no-install-recommends xorg xorgxrdp xrdp ; \
-        echo "/etc/init.d/xrdp start" >> /startkali.sh ; \
-        sed -i s/^port=3389/port=${RDP_PORT}/ /etc/xrdp/xrdp.ini ; \
-    fi
-
-# ###########################################################
-# install and configure tigervnc-standalone-server
-# ###########################################################
-# this needs a bit more tweaking than the other protocols
-# we need to set the mandatory security options,
-# the password for the connection, the port to use
-# and also define the kaliuser to be used for the 
-# screen VNC_DISPLAY
-# the password seems to be overwritten so I am hard
-# setting it in the /startkali.sh script each time 
-# After running tigervncsession-start, the session will
-# terminate once the user logs out. Therefore
-# we do a sudo -u kaliuser vncserver in an endless loop 
-# afterwords. This way we always have a running vnc server
-# ###########################################################
 
 RUN if [ "xvnc" = "x${REMOTE_ACCESS}" ] ; \
     then \
         apt -y install --no-install-recommends tigervnc-standalone-server tigervnc-tools; \
         echo "/usr/libexec/tigervncsession-start :${VNC_DISPLAY} " >> /startkali.sh ; \
-        echo "echo -e 'onemarcfifty' | vncpasswd -f >/home/kaliuser/.vnc/passwd" >> /startkali.sh  ;\
-        echo "while true; do sudo -u kaliuser vncserver -fg -v ; done" >> /startkali.sh ; \
-        echo ":${VNC_DISPLAY}=kaliuser" >>/etc/tigervnc/vncserver.users ;\
-        echo '$localhost = "no";' >>/etc/tigervnc/vncserver-config-mandatory ;\
+        echo "echo -e 'shaka' | vncpasswd -f >/root/.vnc/passwd" >> /startkali.sh  ;\
+        echo "/usr/share/novnc/utils/novnc_proxy --listen 7080 --vnc localhost:5901 > /var/log/novnc.log 2>&1 &" >> /startkali.sh ; \
+        echo "while true; do vncserver -fg -v ; done" >> /startkali.sh ; \
+        echo ":${VNC_DISPLAY}=root" >>/etc/tigervnc/vncserver.users ;\
+        echo '$localhost = "yes";' >>/etc/tigervnc/vncserver-config-mandatory ;\
         echo '$SecurityTypes = "VncAuth";' >>/etc/tigervnc/vncserver-config-mandatory ;\
-        mkdir -p /home/kaliuser/.vnc ;\
-        chown kaliuser:kaliuser /home/kaliuser/.vnc ;\
-        touch /home/kaliuser/.vnc/passwd ;\
-        chown kaliuser:kaliuser /home/kaliuser/.vnc/passwd ;\
-        chmod 600 /home/kaliuser/.vnc/passwd ;\
+        mkdir -p /root/.vnc ;\
+        touch /root/.vnc/passwd ;\
+        chmod 600 /root/.vnc/passwd ;\
     fi
 
 # ###########################################################
@@ -165,13 +107,22 @@ RUN if [ "xvnc" = "x${REMOTE_ACCESS}" ] ; \
 # up and running until it is stopped.
 # ###########################################################
 
+RUN apt -y install --no-install-recommends git
+
+RUN git config --global http.sslverify false
+RUN cd /usr/share/ && \
+    git clone https://github.com/novnc/noVNC.git novnc
+RUN cd /usr/share/novnc/ && \
+    git clone https://github.com/novnc/websockify websockify
+
+RUN cd /usr/share/novnc && ln -sf vnc.html index.html
+
 RUN echo "/bin/bash" >> /startkali.sh
 
 # ###########################################################
 # expose the right ports and set the entrypoint
 # ###########################################################
 
-EXPOSE ${SSH_PORT} ${RDP_PORT} ${VNC_PORT}
 WORKDIR "/root"
 ENTRYPOINT ["/bin/bash"]
 CMD ["/startkali.sh"]

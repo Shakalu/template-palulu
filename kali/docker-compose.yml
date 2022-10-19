@@ -4,7 +4,6 @@ services:
     build: .
     container_name: kali
     ports:
-      - "5901:5901"
       - "7080:7080"
     cap_add:
       - NET_ADMIN
